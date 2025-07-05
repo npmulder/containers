@@ -1,0 +1,48 @@
+---
+name: "Release"
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["apps/**"]
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "App to release"
+        required: true
+        type: string
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.changes.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "apps=[\"${{ inputs.app }}\"]" >> $GITHUB_OUTPUT
+          else
+            apps=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^apps/" | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+            echo "apps=${apps}" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.apps)[0] != null }}
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
+    steps:
+      - name: Release ${{ matrix.app }}
+        uses: ./.github/workflows/app-builder.yaml
+        with:
+          app: ${{ matrix.app }}
+          release: true

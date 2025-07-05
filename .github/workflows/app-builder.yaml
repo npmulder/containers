@@ -1,0 +1,146 @@
+---
+name: "App Builder"
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: "App to build"
+        required: true
+        type: string
+      release:
+        description: "Release build"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Plan
+        id: plan
+        run: |
+          if [[ ! -d "apps/${{ inputs.app }}" ]]; then
+            echo "App ${{ inputs.app }} does not exist"
+            exit 1
+          fi
+          
+          # Default to linux/amd64 and linux/arm64 for multi-arch builds
+          matrix='{"platform": ["linux/amd64", "linux/arm64"]}'
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: plan
+    strategy:
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/${{ inputs.app }}
+          platforms: ${{ matrix.platform }}
+          push: ${{ inputs.release }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ !inputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install goss
+        run: |
+          curl -fsSL https://github.com/aelsabbahy/goss/releases/latest/download/goss-linux-amd64 -o /usr/local/bin/goss
+          chmod +x /usr/local/bin/goss
+
+      - name: Build test image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag test-image:latest \
+            --load \
+            ./apps/${{ inputs.app }}/
+
+      - name: Run tests
+        run: |
+          export GOSS_SLEEP=10
+          export GOSS_FILES_STRATEGY=cp
+          export CONTAINER_RUNTIME=docker
+          goss run --format documentation ./apps/${{ inputs.app }}/tests.yaml
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [plan, build]
+    if: ${{ inputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}:latest \
+            ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}:sha-${{ github.sha }}
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.app }}-${{ github.run_number }}
+          release_name: ${{ inputs.app }} v${{ github.run_number }}
+          body: |
+            ## Container Images
+            
+            - `ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}:latest`
+            - `ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}:sha-${{ github.sha }}`

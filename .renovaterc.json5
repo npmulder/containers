@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeDigest",
+    ":automergeBranch",
+    "github>whitesource/merge-confidence:beta",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "America/New_York",
+  "schedule": ["after 11pm every weekday", "after 11pm on saturday"],
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dashboard 🤖",
+  "suppressNotifications": ["prIgnoreNotification"],
+  "assigneesFromCodeOwners": true,
+  "reviewersFromCodeOwners": true,
+  "commitBodyTable": true,
+  "platformAutomerge": true,
+  "automergeType": "branch",
+  "rebaseWhen": "conflicted",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "regexManagers": [
+    {
+      "description": "Process custom dependencies",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s.*?_VERSION=(?<currentValue>.*)\\s"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Disable updates for base images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ubuntu", "alpine", "python"],
+      "enabled": false
+    },
+    {
+      "description": "Group container image updates",
+      "matchDatasources": ["docker"],
+      "groupName": "container-image-updates",
+      "commitMessageTopic": "container {{depName}}",
+      "commitMessageExtra": "to {{#if isSingleVersion}}v{{{newVersion}}}{{else}}{{{newValue}}}{{/if}}",
+      "schedule": ["after 11pm on sunday"]
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "commitMessageTopic": "GitHub Actions",
+      "schedule": ["after 11pm on sunday"]
+    }
+  ]
+}
