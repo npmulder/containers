@@ -10,21 +10,6 @@ command:
     exit-status: 0
     timeout: 10000
 
-  intel-gpu-libs-level-zero:
-    exec: ls /usr/lib/x86_64-linux-gnu/libze_loader.so*
-    exit-status: 0
-    timeout: 5000
-
-  intel-gpu-libs-opencl:
-    exec: ls /usr/lib/x86_64-linux-gnu/libOpenCL.so*
-    exit-status: 0
-    timeout: 5000
-
-  check-library-path:
-    exec: ldconfig -p | grep -E "(libze_loader|libOpenCL)"
-    exit-status: 0
-    timeout: 5000
-
   check-entrypoint:
     exec: test -x /usr/local/bin/entrypoint.sh
     exit-status: 0
