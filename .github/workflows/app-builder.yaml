@@ -105,10 +105,24 @@ jobs:
 
       - name: Run tests
         run: |
-          export GOSS_SLEEP=10
+          export GOSS_SLEEP=10s
           export GOSS_FILES_STRATEGY=cp
           export CONTAINER_RUNTIME=docker
-          goss run --format documentation ./apps/${{ inputs.app }}/tests.yaml
+          export GOSS_FILE=./apps/${{ inputs.app }}/tests.yaml
+          
+          # Start container for testing
+          CONTAINER_ID=$(docker run -d -p 11434:11434 test-image:latest serve)
+          echo "Started container: $CONTAINER_ID"
+          
+          # Wait for container to be ready
+          sleep 15
+          
+          # Run tests
+          goss validate --format documentation
+          
+          # Clean up
+          docker stop $CONTAINER_ID
+          docker rm $CONTAINER_ID
 
   release:
     name: Release
