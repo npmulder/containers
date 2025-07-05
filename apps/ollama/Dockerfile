@@ -14,13 +14,21 @@ ARG INTEL_COMPUTE_RUNTIME_VERSION=24.35.30872.22
 # Download and install Intel GPU compute runtime libraries (amd64 only)
 RUN if [ "$(uname -m)" = "x86_64" ]; then \
         cd /tmp && \
+        # Download all required Intel GPU packages including dependencies
+        wget -q "https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17791.9/intel-igc-core_1.0.17791.9_amd64.deb" && \
+        wget -q "https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17791.9/intel-igc-opencl_1.0.17791.9_amd64.deb" && \
+        wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-gmmlib_22.5.2_amd64.deb" && \
         wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-level-zero-gpu_1.3.30872.22_amd64.deb" && \
         wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb" && \
-        dpkg-deb -x "intel-level-zero-gpu_1.3.30872.22_amd64.deb" /tmp/intel-gpu && \
-        dpkg-deb -x "intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb" /tmp/intel-gpu && \
-        find /tmp/intel-gpu -name "*.so*" -exec cp {} /usr/lib/x86_64-linux-gnu/ \; && \
-        rm -rf /tmp/intel-gpu /tmp/*.deb && \
-        echo "/usr/lib/x86_64-linux-gnu" >> /etc/ld.so.conf.d/intel-gpu.conf && \
+        # Install packages in dependency order to avoid issues
+        dpkg -i intel-gmmlib_22.5.2_amd64.deb || true && \
+        dpkg -i intel-igc-core_1.0.17791.9_amd64.deb || true && \
+        dpkg -i intel-igc-opencl_1.0.17791.9_amd64.deb || true && \
+        dpkg -i intel-level-zero-gpu_1.3.30872.22_amd64.deb || true && \
+        dpkg -i intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb || true && \
+        # Fix any dependency issues
+        apt-get install -f -y && \
+        rm -rf /tmp/*.deb && \
         ldconfig; \
     else \
         echo "Intel GPU libraries not available for $(uname -m) architecture"; \
