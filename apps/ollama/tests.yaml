@@ -1,0 +1,48 @@
+http:
+  http://localhost:11434/api/tags:
+    status: 200
+    timeout: 30000
+    body: []
+
+command:
+  ollama-version:
+    exec: ollama --version
+    exit-status: 0
+    timeout: 10000
+
+  intel-gpu-libs-level-zero:
+    exec: ls /usr/lib/x86_64-linux-gnu/libze_loader.so*
+    exit-status: 0
+    timeout: 5000
+
+  intel-gpu-libs-opencl:
+    exec: ls /usr/lib/x86_64-linux-gnu/libOpenCL.so*
+    exit-status: 0
+    timeout: 5000
+
+  check-library-path:
+    exec: ldconfig -p | grep -E "(libze_loader|libOpenCL)"
+    exit-status: 0
+    timeout: 5000
+
+  check-entrypoint:
+    exec: test -x /usr/local/bin/entrypoint.sh
+    exit-status: 0
+    timeout: 5000
+
+process:
+  ollama:
+    running: true
+    pid: 1
+
+port:
+  tcp:11434:
+    listening: true
+    ip: ["0.0.0.0"]
+
+user:
+  ollama:
+    exists: true
+    uid: 1000
+    gid: 1000
+    home: /home/ollama
