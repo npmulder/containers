@@ -66,7 +66,7 @@ spec:
     spec:
       containers:
       - name: ollama
-        image: ghcr.io/neilmulder/ollama:latest
+        image: ghcr.io/npmulder/ollama:latest
         resources:
           limits:
             gpu.intel.com/i915: 1
@@ -103,9 +103,9 @@ Every image undergoes rigorous testing:
 
 Images are published to GitHub Container Registry with multiple tagging strategies:
 
-- `ghcr.io/neilmulder/ollama:latest` - Latest stable release
-- `ghcr.io/neilmulder/ollama:sha-abc123` - Specific commit builds
-- `ghcr.io/neilmulder/ollama:v1.0.0` - Semantic version tags
+- `ghcr.io/npmulder/ollama:latest` - Latest stable release
+- `ghcr.io/npmulder/ollama:sha-abc123` - Specific commit builds
+- `ghcr.io/npmulder/ollama:v1.0.0` - Semantic version tags
 
 ## 🤝 Contributing
 
