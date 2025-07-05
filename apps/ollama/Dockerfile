@@ -11,15 +11,13 @@ RUN apt-get update && apt-get install -y \
 # renovate: datasource=github-releases depName=intel/compute-runtime
 ARG INTEL_COMPUTE_RUNTIME_VERSION=24.35.30872.22
 
-# Download and install Intel GPU compute runtime libraries (amd64 only)
+# Download and install Intel GPU compute runtime libraries (amd64 only)  
 RUN if [ "$(uname -m)" = "x86_64" ]; then \
         cd /tmp && \
-        # Download required Intel GPU packages
-        wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-gmmlib_22.5.2_amd64.deb" && \
+        # Download Intel GPU packages with correct URLs
         wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-level-zero-gpu_1.3.30872.22_amd64.deb" && \
         wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb" && \
         # Extract packages to avoid dependency conflicts
-        dpkg-deb -x intel-gmmlib_22.5.2_amd64.deb /tmp/intel-gpu && \
         dpkg-deb -x intel-level-zero-gpu_1.3.30872.22_amd64.deb /tmp/intel-gpu && \
         dpkg-deb -x intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb /tmp/intel-gpu && \
         # Copy libraries to system locations
