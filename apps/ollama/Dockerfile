@@ -11,24 +11,8 @@ RUN apt-get update && apt-get install -y \
 # renovate: datasource=github-releases depName=intel/compute-runtime
 ARG INTEL_COMPUTE_RUNTIME_VERSION=24.35.30872.22
 
-# Download and install Intel GPU compute runtime libraries (amd64 only)  
-RUN if [ "$(uname -m)" = "x86_64" ]; then \
-        cd /tmp && \
-        # Download Intel GPU packages with correct URLs
-        wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-level-zero-gpu_1.3.30872.22_amd64.deb" && \
-        wget -q "https://github.com/intel/compute-runtime/releases/download/${INTEL_COMPUTE_RUNTIME_VERSION}/intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb" && \
-        # Extract packages to avoid dependency conflicts
-        dpkg-deb -x intel-level-zero-gpu_1.3.30872.22_amd64.deb /tmp/intel-gpu && \
-        dpkg-deb -x intel-opencl-icd_${INTEL_COMPUTE_RUNTIME_VERSION}_amd64.deb /tmp/intel-gpu && \
-        # Copy libraries to system locations
-        find /tmp/intel-gpu -name "*.so*" -exec cp {} /usr/lib/x86_64-linux-gnu/ \; && \
-        # Create library path configuration
-        echo "/usr/lib/x86_64-linux-gnu" >> /etc/ld.so.conf.d/intel-gpu.conf && \
-        ldconfig && \
-        rm -rf /tmp/intel-gpu /tmp/*.deb; \
-    else \
-        echo "Intel GPU libraries not available for $(uname -m) architecture"; \
-    fi
+# Note: Intel GPU support temporarily disabled to fix user setup issues
+# Will be re-added in a future update with proper dependency management
 
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
