@@ -4,7 +4,7 @@
 "aqua:GoogleContainerTools/container-structure-test" = "1.19.3"
 "aqua:jqlang/jq" = "1.8.0"
 "aqua:mikefarah/yq" = "4.45.4"
-"aqua:aelsabbahy/goss" = "0.4.8"
+"aqua:aelsabbahy/goss" = "0.4.9"
 
 [env]
 REGISTRY = "ghcr.io"
